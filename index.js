@@ -5,6 +5,7 @@ const testModal = require('./blocks/modals/test-modal.js');
 const homeTab = require('./blocks/home/app-home.js');
 const helloMessage = require('./blocks/messages/hello-message.js');
 const getEmployeeProfileMsg = require('./blocks/messages/get-employee-profile.js');
+const getPlateDataMsg = require('./blocks/messages/get-plate-data.js');
 const { BlockCollection, Blocks } = require('slack-block-builder');
 
 let logLevel;
@@ -23,9 +24,10 @@ const app = new App({
   
 // ------------------------------- App Methods ------------------------------- //
 
-const getUserLeads = async () =>{
+const getUserLeads = async (userEmail) =>{
     const url = 'https://apim.workato.com/smwb/simi-slack-bot-v1/data';
-    const response = await postWorkatoResponse(url, {});
+    const response = await postWorkatoResponse(url, {"email":userEmail});
+    return response;
 }
 
 const postAppMessage = async (obj) =>{
@@ -81,21 +83,39 @@ app.action('message_prepare_meeting_button', async ({ ack, payload, body }) => {
 });
 
 /**
- * Triggered on the "Simi Sales" button on the App Home
+ * Triggered on the "What's on my plate" button on the App Home
  */
-app.action('simi_sales', async ({ ack, client, payload, body }) => {
-	console.log('simi_sales  clicked', payload, body);
-	ack();
-    const url = 'https://apim.workato.com/smwb/simi-slack-bot-v1/slack/';
-    const response = await getWorkatoResponse(url);
-    await client.views.open({
-        // Use the user ID associated with the event
-        trigger_id: body.trigger_id,
-        // Pass the view_id
-        view_id: body.view.id,
-        // Pass the current hash to avoid race conditions
-        hash: body.view.hash,
-        view: testModal(JSON.stringify(response))
+app.action('get_plate_data', async ({ ack, client, payload, body, event }) => {
+    console.log('get_plate_data  clicked', payload, body, event);
+    const leads =  [
+      {
+        sfdc_id: '00Q67000013UFIa',
+        lead_name: 'Vasco Nuno Cortes',
+        url: 'https://apim.workato.com/smwb/simi-slack-bot-v1/lead/'
+      },
+      {
+        sfdc_id: '00Q67000013UFIa',
+        lead_name: 'Another Lead',
+        url: 'https://apim.workato.com/smwb/simi-slack-bot-v1/lead/'
+      },
+      {
+        sfdc_id: '00Q67000013UFIa',
+        lead_name: 'Yet another one',
+        url: 'https://apim.workato.com/smwb/simi-slack-bot-v1/lead/'
+      }
+    ]
+    ack();
+    const userData = await client.users.info({
+      user: body.user.id
+    });
+    // const userEmail = userData.user.email;
+    const userEmail = 'oren.israel@similarweb.com'
+    const userLeads = await getUserLeads(userEmail);
+    console.log(userLeads.leads);
+    console.log('blocks', getPlateDataMsg(leads)['blocks']);
+    await postAppMessage({
+        channel: ENV.BOT_CHANNEL,
+        blocks: getPlateDataMsg(leads)['blocks'],
     });
 });
 
@@ -119,13 +139,23 @@ app.action('get_workato_response', async ({ event, context, ack, client, payload
  * Open App Home
  */
 app.event('app_home_opened', async ({ event, client, logger }) => {
+    
   console.log('home on app');
   try {
-    const userLeads = await getUserLeads();
+    const userData = await client.users.info({
+      user: event.user
+    });
+    const userEmail = userData.user.email;
+    const userName = userData.user.real_name;
+    console.log('userEmail', userName);
+    // const userLeads = await getUserLeads(userEmail);
+    // console.log(userLeads.leads);
+
     // Call views.publish with the built-in client
     const result = await client.views.publish({
       user_id: event.user,
-      view: homeTab("Welcome to MIS Slack App.\n Pleaese select your prefered action")
+    //   view: homeTab("Welcome to MIS Slack App.\n Pleaese select your prefered action")
+        view: homeTab(userName)
     });
     logger.info(result);
   }
