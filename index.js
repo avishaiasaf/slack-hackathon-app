@@ -71,8 +71,8 @@ const getWorkatoResponse = async (url) =>{
  * Triggered on the "Prepare for Sales Meeting" button on the app Hello Message
  */
 app.action('message_prepare_meeting_button', async ({ ack, payload, body }) => {
-	console.log('message_prepare_meeting_button  clicked', payload, body);
-	ack();
+    console.log('message_prepare_meeting_button  clicked', payload, body);
+    ack();
 
     const channelId = body.container.channel_id;
     console.log('cannnel id', channelId);
@@ -87,23 +87,23 @@ app.action('message_prepare_meeting_button', async ({ ack, payload, body }) => {
  */
 app.action('get_plate_data', async ({ ack, client, payload, body, event }) => {
     console.log('get_plate_data  clicked', payload, body, event);
-    const leads =  [
-      {
-        sfdc_id: '00Q67000013UFIa',
-        lead_name: 'Vasco Nuno Cortes',
-        url: 'https://apim.workato.com/smwb/simi-slack-bot-v1/lead/'
-      },
-      {
-        sfdc_id: '00Q67000013UFIa',
-        lead_name: 'Another Lead',
-        url: 'https://apim.workato.com/smwb/simi-slack-bot-v1/lead/'
-      },
-      {
-        sfdc_id: '00Q67000013UFIa',
-        lead_name: 'Yet another one',
-        url: 'https://apim.workato.com/smwb/simi-slack-bot-v1/lead/'
-      }
-    ]
+    // const leads =  [
+    //   {
+    //     sfdc_id: '00Q67000013UFIa',
+    //     lead_name: 'Vasco Nuno Cortes',
+    //     url: 'https://apim.workato.com/smwb/simi-slack-bot-v1/lead/'
+    //   },
+    //   {
+    //     sfdc_id: '00Q67000013UFIa',
+    //     lead_name: 'Another Lead',
+    //     url: 'https://apim.workato.com/smwb/simi-slack-bot-v1/lead/'
+    //   },
+    //   {
+    //     sfdc_id: '00Q67000013UFIa',
+    //     lead_name: 'Yet another one',
+    //     url: 'https://apim.workato.com/smwb/simi-slack-bot-v1/lead/'
+    //   }
+    // ]
     ack();
     const userData = await client.users.info({
       user: body.user.id
@@ -112,10 +112,10 @@ app.action('get_plate_data', async ({ ack, client, payload, body, event }) => {
     const userEmail = 'oren.israel@similarweb.com'
     const userLeads = await getUserLeads(userEmail);
     console.log(userLeads.leads);
-    console.log('blocks', getPlateDataMsg(leads)['blocks']);
+    console.log('blocks', JSON.stringify(getPlateDataMsg(userLeads.leads)['blocks']));
     await postAppMessage({
         channel: ENV.BOT_CHANNEL,
-        blocks: getPlateDataMsg(leads)['blocks'],
+        blocks: getPlateDataMsg(userLeads.leads)['blocks'],
     });
 });
 
@@ -123,14 +123,29 @@ app.action('get_plate_data', async ({ ack, client, payload, body, event }) => {
  * Triggered on the "Prepare for Sales Meeting" button on the Home App
  */
 app.action('get_workato_response', async ({ event, context, ack, client, payload, body }) => {
-	console.log('user_select action', payload, context, event, body );
-	ack();
+    console.log('user_select action', payload, context, event, body );
+    ack();
     const url = 'https://apim.workato.com/smwb/simi-slack-bot-v1/slack/';
     const dataBody = await getWorkatoResponse(url);
     const result = await client.views.publish({
         user_id: body.user.id,
         view: homeTab(JSON.stringify(dataBody))
       });
+});
+
+/**
+ * Triggered on the first lead button
+ */
+app.action('lead_button_1', async ({ event, context, ack, client, payload, body }) => {
+    console.log('lead_button_1 action', payload, body );
+    ack();
+    const url = 'https://apim.workato.com/smwb/simi-slack-bot-v1/slack/';
+    const dataBody = await getWorkatoResponse(url);
+   
+    await postAppMessage({
+        channel: body.container.channel_id,
+        text: `This is all the data you need for the call `,
+    });
 });
 
 // ------------------------------- App Events ------------------------------- //

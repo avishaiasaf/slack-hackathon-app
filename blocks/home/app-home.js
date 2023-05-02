@@ -78,17 +78,7 @@ module.exports = (name)=>{
                         "type": "button",
                         "text": {
                             "type": "plain_text",
-                            "text": "Simi Sales",
-                            "emoji": true
-                        },
-                        "value": "click_me_123",
-                        "action_id": "simi_sales"
-                    },
-                    {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "MIR's meeting",
+                            "text": "MIR Pre Meeting",
                             "emoji": true
                         },
                         "value": "click_me_123",
@@ -98,7 +88,7 @@ module.exports = (name)=>{
                         "type": "button",
                         "text": {
                             "type": "plain_text",
-                            "text": "Salesman's meeting prep",
+                            "text": "Sales Pre Meeting",
                             "emoji": true
                         },
                         "value": "click_me_123",
@@ -108,11 +98,11 @@ module.exports = (name)=>{
                         "type": "button",
                         "text": {
                             "type": "plain_text",
-                            "text": "Salesman's post meeting",
+                            "text": "Sales Post Meeting",
                             "emoji": true
                         },
                         "value": "click_me_123",
-                        "action_id": "get_get_post_meeting"
+                        "action_id": "get_sales_post_meeting"
                     }
                 ]
             }
