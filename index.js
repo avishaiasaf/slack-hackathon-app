@@ -9,6 +9,12 @@ const getPlateDataMsg = require('./blocks/messages/get-plate-data.js');
 const mirPrepTypeEmailMsg = require('./blocks/messages/mir-prep-type-email.js');
 const { BlockCollection, Blocks } = require('slack-block-builder');
 
+const graphModal = require('./blocks/modals/graph-modal.js');
+const { WebClient } = require('@slack/web-api');
+const Chart = require('chart.js');
+const QuickChart = require('quickchart-js');
+const slackClient = new WebClient(ENV.TOKEN);
+
 let logLevel;
 logLevel = LogLevel.DEBUG;
 
@@ -154,6 +160,24 @@ app.action('get_mir_meeting_prep', async ({ event, context, ack, client, payload
 });
 
 /**
+ * Triggered on the SimilarPro on the Home App
+ */
+app.action('similar_pro_meeting', async ({ event, context, ack, client, payload, body, logger }) => {
+  console.log('similar_pro_meeting button clicked', 'payload: ', payload, 'context: ', context, 'event: ', event, 'body: ', body , body.trigger_id);
+  ack();
+  // console.log(body.trigger_id, graphModal())
+  try{
+    const result = await client.views.open({
+      trigger_id: body.trigger_id,
+      view: graphModal
+    });
+    logger.info(result);
+  }catch(e){
+    console.error(e);
+  }
+});
+
+/**
  * Triggered on the "MIR Pre Meeting" button on the app Hello Message
  */
 app.action('get_mir_meeting_prep_message', async ({ event, context, ack, client, payload, body, logger }) => {
@@ -247,6 +271,9 @@ app.message(/get my graph/i, async ({  body, payload }) => {
 
 // ------------------------------- App Views ------------------------------- //
 
+/**
+ * Handle MIR Pre Meeting Modal
+ */
 app.view('mir_pre_meeting_modal', async ({ payload, body, client, ack }) => {
   console.log('mir_pre_meeting_modal submited', 'payload: ', payload, 'body: ', body, 'context: ',);
   await ack();
@@ -259,4 +286,101 @@ app.view('mir_pre_meeting_modal', async ({ payload, body, client, ack }) => {
     console.error(e)
   }
   
+});
+
+
+// Handle the view_submission event
+app.view('graph_modal', async ({ ack, body, view, payload, say }) => {
+  // Acknowledge the event
+  await ack();
+
+  // Get the form data from the payload
+  // console.log('view: ', view, 'payload: ', payload);
+  // console.log(view.state.values['website_input_block'])
+  // const website = '';                       //view.state.values['website_input_block']['plain_text_input-action'].value;
+  // const startDate = view.state.values['datepickers_block']['actionId-0'].selected_date;
+  // const endDate = view.state.values['datepickers_block']['actionId-1'].selected_date;
+  // const xAxis = view.state.values['x_axis_block']['static_select-action'].selected_option.value;
+  // const yAxis = view.state.values['y_axis_block']['static_select-action'].selected_option.value;
+  // const engagementType = view.state.values['engagement_type_block']['checkboxes-action'].selected_options.map(option => option.value);
+  // const countries = view.state.values['country_block']['multi_static_select-action'].selected_options.map(option => option.value);
+
+  // Process the form data as needed
+  // console.log('Website:', website);
+  // console.log('Start date:', startDate);
+  // console.log('End date:', endDate);
+  // console.log('X axis:', xAxis);
+  // console.log('Y axis:', yAxis);
+  // console.log('Engagement type:', engagementType);
+  // console.log('Countries:', countries);
+
+  // Define the API endpoint and request parameters
+  // const apiEndpoint = 'https://api.similarweb.com/v1/website/venusconcept.com/visits';
+  const apiEndpoint = 'https://api.similarweb.com/v1/website/venusconcept.com/total-traffic-and-engagement/visits?api_key=f477f6d595124bde88bf0eeff9bfe8ac&start_date=2022-01-01&end_date=2023-03-31&granularity=monthly';
+  // const apiParams = {
+  //     api_key: process.env.SIMILARWEB_API_KEY,
+  //     start_date: '2022-01-01',
+  //     end_date: '2023-03-31',
+  //     main_domain_only: false,
+  //     country: 'world',
+  //     granularity: 'monthly'
+  // };
+
+// Call the Similarweb API and retrieve the response JSON
+  const response = await axios.get(apiEndpoint).then(res => res.data);
+
+// Extract the "visits" data from the response JSON
+  const data = response.visits;
+
+// Extract the "date" and "visits" values into separate arrays
+  const dates = data.map(item => item.date);
+  const visits = data.map(item => item.visits);
+
+// Create a new chart object
+    const chart = new QuickChart();
+    chart.setConfig({
+      type: 'line',
+      data: {
+        labels: dates,
+        datasets: [{
+          label: 'Monthly Visits',
+          data: visits,
+          borderColor: 'blue',
+          fill: false
+        }]
+      },
+      options: {
+        responsive: false,
+        maintainAspectRatio: false,
+        scales: {
+          yAxes: [{
+            ticks: {
+              beginAtZero: true
+            }
+          }]
+        }
+      }
+    });
+
+chart.setWidth(600);
+chart.setHeight(400);
+
+// Convert the chart object to a base64-encoded PNG image
+const imageUrl = await chart.getShortUrl();
+
+// Send a message with the attachment to the Slack app
+  await postAppMessage({
+        channel: ENV.BOT_CHANNEL,
+        blocks: [
+          {
+            type: 'image',
+            title: {
+              type: 'plain_text',
+              text: 'Monthly Visits Chart'
+            },
+            image_url: imageUrl,
+            alt_text: 'Monthly Visits Chart'
+          }
+        ]
+  });
 });

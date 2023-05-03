@@ -103,6 +103,16 @@ module.exports = (name)=>{
                         },
                         "value": "click_me_123",
                         "action_id": "get_sales_post_meeting"
+                    },
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "SimilarPro",
+                            "emoji": true
+                        },
+                        "value": "click_me_123",
+                        "action_id": "similar_pro_meeting"
                     }
                 ]
             }
