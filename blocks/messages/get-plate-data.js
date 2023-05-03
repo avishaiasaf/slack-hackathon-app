@@ -25,7 +25,7 @@ module.exports =  (leads)=>{
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": "Your current leads"
+				"text": `:office: ${lead.company}\n :email: ${lead.email}`
 			}
 		},
 		leadButton(lead.sfdc_id, 'lead_button_' + i, lead.lead_name, lead.url));

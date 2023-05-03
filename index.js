@@ -10,10 +10,13 @@ const mirPrepTypeEmailMsg = require('./blocks/messages/mir-prep-type-email.js');
 const { BlockCollection, Blocks } = require('slack-block-builder');
 
 const graphModal = require('./blocks/modals/graph-modal.js');
+const presentGraphModal = require('./blocks/modals/present-graph-modal.js');
 const { WebClient } = require('@slack/web-api');
 const Chart = require('chart.js');
 const QuickChart = require('quickchart-js');
 const slackClient = new WebClient(ENV.TOKEN);
+
+const USER_EMAIL = 'oren.israel@similarweb.com'
 
 let logLevel;
 logLevel = LogLevel.DEBUG;
@@ -35,6 +38,12 @@ const getUserLeads = async (userEmail) =>{
     const url = 'https://apim.workato.com/smwb/simi-slack-bot-v1/data';
     const response = await postWorkatoResponse(url, {"email":userEmail});
     return response;
+}
+
+const getViewFirstValue = (view)=>{
+  const path = view.state.values;
+  const values = path[Object.keys(path)]
+  return values[Object.keys(values)]
 }
 
 const postAppMessage = async (obj) =>{
@@ -94,23 +103,29 @@ app.action('message_prepare_meeting_button', async ({ ack, payload, body }) => {
  */
 app.action('get_plate_data', async ({ ack, client, payload, body, event }) => {
     console.log('get_plate_data  clicked', payload, body, event);
-    // const leads =  [
-    //   {
-    //     sfdc_id: '00Q67000013UFIa',
-    //     lead_name: 'Vasco Nuno Cortes',
-    //     url: 'https://apim.workato.com/smwb/simi-slack-bot-v1/lead/'
-    //   },
-    //   {
-    //     sfdc_id: '00Q67000013UFIa',
-    //     lead_name: 'Another Lead',
-    //     url: 'https://apim.workato.com/smwb/simi-slack-bot-v1/lead/'
-    //   },
-    //   {
-    //     sfdc_id: '00Q67000013UFIa',
-    //     lead_name: 'Yet another one',
-    //     url: 'https://apim.workato.com/smwb/simi-slack-bot-v1/lead/'
-    //   }
-    // ]
+    const leads =  [
+      {
+        sfdc_id: '00Q67000013UFIa',
+        lead_name: 'Vasco Nuno Cortes',
+        company: 'google.com',
+        email: 'test@gmail.com',
+        url: 'https://apim.workato.com/smwb/simi-slack-bot-v1/lead/'
+      },
+      {
+        sfdc_id: '00Q67000013UFIa',
+        lead_name: 'Another Lead',
+        company: 'faceboook',
+        email: 'test@gmail.com',
+        url: 'https://apim.workato.com/smwb/simi-slack-bot-v1/lead/'
+      },
+      {
+        sfdc_id: '00Q67000013UFIa',
+        lead_name: 'Yet another one',
+        company: 'dokka',
+        email: 'test@gmail.com',
+        url: 'https://apim.workato.com/smwb/simi-slack-bot-v1/lead/'
+      }
+    ]
     ack();
     const userData = await client.users.info({
       user: body.user.id
@@ -118,11 +133,12 @@ app.action('get_plate_data', async ({ ack, client, payload, body, event }) => {
     // const userEmail = userData.user.email;
     const userEmail = 'oren.israel@similarweb.com'
     const userLeads = await getUserLeads(userEmail);
+    const plateData = getPlateDataMsg(userLeads.leads)['blocks'];
     console.log(userLeads.leads);
-    console.log('blocks', JSON.stringify(getPlateDataMsg(userLeads.leads)['blocks']));
+    console.log('blocks', JSON.stringify(plateData));
     await postAppMessage({
         channel: ENV.BOT_CHANNEL,
-        blocks: getPlateDataMsg(userLeads.leads)['blocks'],
+        blocks: plateData
     });
 });
 
@@ -207,12 +223,21 @@ app.action('mir_prep_email_action', async ({ event, context, ack, client, payloa
 app.action(/lead_button_+/, async ({ event, context, ack, client, payload, body }) => {
     console.log('lead_button_1 action', payload, body );
     ack();
-    const url = 'https://apim.workato.com/smwb/simi-slack-bot-v1/slack/';
-    const dataBody = await getWorkatoResponse(url);
+    const url = 'https://apim.workato.com/smwb/simi-slack-bot-v1/presale';
+    const dataBody = await postWorkatoResponse(url, {email: USER_EMAIL});
    
     await postAppMessage({
         channel: body.container.channel_id,
-        text: `This is all the data you need for the call `,
+        //text: `This is all the data you need for the call\n <${JSON.stringify(dataBody.doc_link)}| Go to Salesforce> `,
+        blocks: [
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": `All the preparation you need for this call is waiting for you.\n 👉 <${dataBody.doc_link}| Go to Salesforce>`
+            }
+          }
+        ]
     });
 });
 
@@ -274,26 +299,46 @@ app.message(/get my graph/i, async ({  body, payload }) => {
 /**
  * Handle MIR Pre Meeting Modal
  */
-app.view('mir_pre_meeting_modal', async ({ payload, body, client, ack }) => {
-  console.log('mir_pre_meeting_modal submited', 'payload: ', payload, 'body: ', body, 'context: ',);
+app.view('mir_pre_meeting_modal', async ({ payload, body, client, ack, context, view }) => {
+  console.log('mir_pre_meeting_modal submited', 'payload: ', payload, 'body: ', body, 'context: ', context, 'view', view.state.values);
   await ack();
+  const email = getViewFirstValue(view).value;
+  console.log(email);
+
+  await postAppMessage({
+    channel: ENV.BOT_CHANNEL,
+    text: `this is what you need ${email}`
+});
   //"view_id": body.view.id
-  try{
-    client.views.update({
-      "view_id": body.view.id
-    });
-  }catch(e){
-    console.error(e)
-  }
+  // try{
+  //   client.views.update({
+  //       view_id: body.view.id
+  //   });
+  // }catch(e){
+  //   console.error(e)
+  // }
   
 });
 
 
 // Handle the view_submission event
-app.view('graph_modal', async ({ ack, body, view, payload, say }) => {
+app.view('graph_modal', async ({ ack, body, view, payload, say, client }) => {
   // Acknowledge the event
+  
   await ack();
-
+  console.log('mir_pre_meeting_modal submited', 'payload: ', payload, 'body: ', body, 'view', view.state.values);
+  console.log("--------------");
+  const valueList = Object.values(view.state.values);
+  parameters = {};
+  valueList.forEach(val =>{
+    const key = Object.keys(val)[0];
+    const param = Object.values(val)[0];
+    const value = param['value'] ? param['value'] : (param['selected_option'] ? param['selected_option'] : param['selected_date']);
+    console.log(key, value);
+    parameters[key] = value;
+  });
+  console.log(parameters['website'])
+  console.log(Object.values(view.state.values));
   // Get the form data from the payload
   // console.log('view: ', view, 'payload: ', payload);
   // console.log(view.state.values['website_input_block'])
@@ -315,16 +360,20 @@ app.view('graph_modal', async ({ ack, body, view, payload, say }) => {
   // console.log('Countries:', countries);
 
   // Define the API endpoint and request parameters
-  // const apiEndpoint = 'https://api.similarweb.com/v1/website/venusconcept.com/visits';
-  const apiEndpoint = 'https://api.similarweb.com/v1/website/venusconcept.com/total-traffic-and-engagement/visits?api_key=f477f6d595124bde88bf0eeff9bfe8ac&start_date=2022-01-01&end_date=2023-03-31&granularity=monthly';
-  // const apiParams = {
-  //     api_key: process.env.SIMILARWEB_API_KEY,
-  //     start_date: '2022-01-01',
-  //     end_date: '2023-03-31',
-  //     main_domain_only: false,
-  //     country: 'world',
-  //     granularity: 'monthly'
-  // };
+  const apiParams = {
+    api_key: ENV.SIMILARWEB_API_KEY,
+    start_date: '2022-01-01',
+    end_date: '2023-03-31',
+    main_domain_only: false,
+    country: 'world',
+    granularity: 'monthly',
+    website: parameters['website'],
+    x_axis: 'visits'
+};
+
+  // const apiEndpoint = `https://api.similarweb.com/v1/website/venusconcept.com/visits`;
+  const apiEndpoint = `https://api.similarweb.com/v1/website/${apiParams.website}/total-traffic-and-engagement/${apiParams.x_axis}?api_key=${apiParams.api_key}&start_date=${apiParams.start_date}&end_date=${apiParams.end_date}&granularity=${apiParams.granularity}`;
+  
 
 // Call the Similarweb API and retrieve the response JSON
   const response = await axios.get(apiEndpoint).then(res => res.data);
@@ -369,6 +418,15 @@ chart.setHeight(400);
 const imageUrl = await chart.getShortUrl();
 
 // Send a message with the attachment to the Slack app
+// try{
+//   client.views.update({
+//     "response_action": "update",
+//     "view_id": body.view.id,
+//     view: presentGraphModal(imageUrl)
+//   });
+// }catch(e){
+//   console.error(e)
+// }
   await postAppMessage({
         channel: ENV.BOT_CHANNEL,
         blocks: [

@@ -3,7 +3,7 @@ module.exports = {
         "callback_id": "graph_modal",
         "title": {
             "type": "plain_text",
-            "text": "My App",
+            "text": "SimilarPro",
             "emoji": true
         },
         "submit": {
@@ -30,14 +30,14 @@ module.exports = {
             },
             {
                 "type": "input",
+                "optional": true,
                 "element": {
                     "type": "plain_text_input",
-                    "action_id": "plain_text_input-action"
+                    "action_id": "website"
                 },
                 "label": {
                     "type": "plain_text",
-                    "text": "Company Website",
-                    "emoji": true
+                    "text": "Company Website"
                 }
             },
             {
@@ -226,7 +226,7 @@ module.exports = {
                             "value": "value-6"
                         }
                     ],
-                    "action_id": "static_select-action"
+                    "action_id": "static_select-action-2"
                 }
             },
             {
@@ -269,6 +269,14 @@ module.exports = {
                         "emoji": true
                     },
                     "options": [
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "Worldwide",
+                                "emoji": true
+                            },
+                            "value": "value-14"
+                        },
                         {
                             "text": {
                                 "type": "plain_text",

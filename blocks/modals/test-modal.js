@@ -24,7 +24,7 @@ module.exports = (username)=>{
         "callback_id": "mir_pre_meeting_modal",
         "title": {
             "type": "plain_text",
-            "text": "My App",
+            "text": "MIR Pre Meeting",
             "emoji": true
         },
         "submit": {
