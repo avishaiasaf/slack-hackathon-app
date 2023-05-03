@@ -6,6 +6,7 @@ const homeTab = require('./blocks/home/app-home.js');
 const helloMessage = require('./blocks/messages/hello-message.js');
 const getEmployeeProfileMsg = require('./blocks/messages/get-employee-profile.js');
 const getPlateDataMsg = require('./blocks/messages/get-plate-data.js');
+const mirPrepTypeEmailMsg = require('./blocks/messages/mir-prep-type-email.js');
 const { BlockCollection, Blocks } = require('slack-block-builder');
 
 let logLevel;
@@ -134,9 +135,52 @@ app.action('get_workato_response', async ({ event, context, ack, client, payload
 });
 
 /**
+ * Triggered on the "MIR Pre Meeting" button on the Home App
+ */
+app.action('get_mir_meeting_prep', async ({ event, context, ack, client, payload, body, logger }) => {
+  console.log('get_mir_meeting_prep button clicked', 'payload: ', payload, 'context: ', context, 'event: ', event, 'body: ', body , body.trigger_id);
+  ack();
+  // const url = 'https://apim.workato.com/smwb/simi-slack-bot-v1/slack/';
+  // const dataBody = await getWorkatoResponse(url);
+  try{
+    const result = await client.views.open({
+      trigger_id: body.trigger_id,
+      view: testModal(JSON.stringify('dataBody'))
+    });
+    logger.info(result);
+  }catch(e){
+    console.error(e);
+  }
+});
+
+/**
+ * Triggered on the "MIR Pre Meeting" button on the app Hello Message
+ */
+app.action('get_mir_meeting_prep_message', async ({ event, context, ack, client, payload, body, logger }) => {
+  console.log('get_mir_meeting_prep_message button clicked', 'payload: ', payload, 'context: ', context, 'event: ', event, 'body: ', body , body.trigger_id);
+  ack();
+  await postAppMessage({
+      channel: body.container.channel_id,
+      blocks: mirPrepTypeEmailMsg['blocks'],
+  });
+});
+
+/**
+ * Triggered on the "Send" button on the MIR Pre Meeting message
+ */
+app.action('mir_prep_email_action', async ({ event, context, ack, client, payload, body, logger }) => {
+  console.log('mir_prep_email_action button clicked', 'payload: ', payload, 'context: ', context, 'event: ', event, 'body: ', body , body.trigger_id);
+  ack();
+  await postAppMessage({
+      channel: body.container.channel_id,
+      text: 'Everything you need',
+  });
+});
+
+/**
  * Triggered on the first lead button
  */
-app.action('lead_button_1', async ({ event, context, ack, client, payload, body }) => {
+app.action(/lead_button_+/, async ({ event, context, ack, client, payload, body }) => {
     console.log('lead_button_1 action', payload, body );
     ack();
     const url = 'https://apim.workato.com/smwb/simi-slack-bot-v1/slack/';
@@ -199,4 +243,20 @@ app.message(/get my graph/i, async ({  body, payload }) => {
         channel: payload.channel,
         text: `What do you need: `,
     });
+});
+
+// ------------------------------- App Views ------------------------------- //
+
+app.view('mir_pre_meeting_modal', async ({ payload, body, client, ack }) => {
+  console.log('mir_pre_meeting_modal submited', 'payload: ', payload, 'body: ', body, 'context: ',);
+  await ack();
+  //"view_id": body.view.id
+  try{
+    client.views.update({
+      "view_id": body.view.id
+    });
+  }catch(e){
+    console.error(e)
+  }
+  
 });
