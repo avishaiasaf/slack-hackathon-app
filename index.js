@@ -15,6 +15,7 @@ const { WebClient } = require('@slack/web-api');
 const Chart = require('chart.js');
 const QuickChart = require('quickchart-js');
 const slackClient = new WebClient(ENV.TOKEN);
+const workatoEndpoints = require('./workato-endpoints.js');
 
 const USER_EMAIL = 'oren.israel@similarweb.com'
 
@@ -35,7 +36,7 @@ const app = new App({
 // ------------------------------- App Methods ------------------------------- //
 
 const getUserLeads = async (userEmail) =>{
-    const url = 'https://apim.workato.com/smwb/simi-slack-bot-v1/data';
+    const url = workatoEndpoints.GET_USER_LEADS;
     const response = await postWorkatoResponse(url, {"email":userEmail});
     return response;
 }
@@ -109,21 +110,21 @@ app.action('get_plate_data', async ({ ack, client, payload, body, event }) => {
         lead_name: 'Vasco Nuno Cortes',
         company: 'google.com',
         email: 'test@gmail.com',
-        url: 'https://apim.workato.com/smwb/simi-slack-bot-v1/lead/'
+        url: workatoEndpoints.GET_LEAD_DETAILS
       },
       {
         sfdc_id: '00Q67000013UFIa',
         lead_name: 'Another Lead',
         company: 'faceboook',
         email: 'test@gmail.com',
-        url: 'https://apim.workato.com/smwb/simi-slack-bot-v1/lead/'
+        url: workatoEndpoints.GET_LEAD_DETAILS
       },
       {
         sfdc_id: '00Q67000013UFIa',
         lead_name: 'Yet another one',
         company: 'dokka',
         email: 'test@gmail.com',
-        url: 'https://apim.workato.com/smwb/simi-slack-bot-v1/lead/'
+        url: workatoEndpoints.GET_LEAD_DETAILS
       }
     ]
     ack();
@@ -148,7 +149,7 @@ app.action('get_plate_data', async ({ ack, client, payload, body, event }) => {
 app.action('get_workato_response', async ({ event, context, ack, client, payload, body }) => {
     console.log('user_select action', payload, context, event, body );
     ack();
-    const url = 'https://apim.workato.com/smwb/simi-slack-bot-v1/slack/';
+    const url = workatoEndpoints.PREPARE_SALES_MEETING;
     const dataBody = await getWorkatoResponse(url);
     const result = await client.views.publish({
         user_id: body.user.id,
@@ -162,8 +163,6 @@ app.action('get_workato_response', async ({ event, context, ack, client, payload
 app.action('get_mir_meeting_prep', async ({ event, context, ack, client, payload, body, logger }) => {
   console.log('get_mir_meeting_prep button clicked', 'payload: ', payload, 'context: ', context, 'event: ', event, 'body: ', body , body.trigger_id);
   ack();
-  // const url = 'https://apim.workato.com/smwb/simi-slack-bot-v1/slack/';
-  // const dataBody = await getWorkatoResponse(url);
   try{
     const result = await client.views.open({
       trigger_id: body.trigger_id,
@@ -223,7 +222,7 @@ app.action('mir_prep_email_action', async ({ event, context, ack, client, payloa
 app.action(/lead_button_+/, async ({ event, context, ack, client, payload, body }) => {
     console.log('lead_button_1 action', payload, body );
     ack();
-    const url = 'https://apim.workato.com/smwb/simi-slack-bot-v1/presale';
+    const url = workatoEndpoints.LEAD_PRESALE;
     const dataBody = await postWorkatoResponse(url, {email: USER_EMAIL});
    
     await postAppMessage({
